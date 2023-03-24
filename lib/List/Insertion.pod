@@ -1,0 +1,285 @@
+=head1 NAME
+
+List::Insertion - Binary search a list for insertion point
+
+=head1 SYNOPSIS
+
+Search for insertion point, left of duplicates.
+
+  use List::Insertion {type=>"numeric", duplicate=>"left"};
+
+  # Data has value 3 duplcated
+
+  my @data=(1, 2, 3, 3, 4, 5, 6, 7);
+
+  my $key= 3;
+
+  # The insert position will be 2, which is left of duplicates
+  #
+  my $pos=search_numeric_left $key, \@data;
+
+
+Search for insertion point, right of duplicates, with accessor
+
+  use List::Insertion {type=>"numeric", duplicate=>"right", accessor=>'->{value}'};
+
+  # Data has value 3 duplcated
+
+  my @data=(
+    {value=>1},
+    {value=>2},
+    {value=>3},
+    {value=>3},
+    {value=>4},
+    {value=>5},
+  );
+
+  my $key= 3;
+
+  # The insert position will be 4, which is right of duplicates
+  #
+  my $pos=search_numeric_left {value=>$key}, \@data;
+
+
+
+=head1 DESCRIPTION
+
+L<List::Insertion> is a module implementing binary search algorithms to locate
+the B<insertion> point of a sorted list for a given target value. If the value
+were to be inserted at that position, the list would remain sorted.
+
+Performance rather than flexibility is favoured in the implementation and
+necessitates the following restrictions on the data stored in the
+array/list and how it's compared:
+
+=over 
+
+=item No code blocks can be specified
+
+=item Element comparision is implicitly numerical or string
+
+=item Data is expected to be sorted in asscending order only
+
+=item List element are homogeneous
+
+=back
+
+Fortunately, elements are not restricted to simple scalars. An 'accessor' code
+snippet can be specified to access the comparison value in nested data
+structures. Each element in the array must be of the same structure of course.
+
+
+=head1  API
+
+=head2 Importing
+
+When importing this modules, the type of comparison (string or numeric) and the
+behaviour in dealing with duplicate values (left or right) is specified along
+with optional accessor and prefix options.
+
+Combinations of these options are generated via C<Data::Combination>, allowing
+multiple subroutines to be configured and returned with minimal typing.
+
+Consider the following examples:
+    
+
+    use List::Insertion {type=>"numeric", position=>left};                #(1)
+
+    use List::Insertion {type=>"numeric", position=>["left", "right"]};   #(2)
+
+    use List::Insertion {                                               #(3)
+      type=>"numeric", duplicate=>["left", "right"], accessor=>'->{hash_key}'
+    };
+
+    use List::Insertion {                                               #(4)
+      type=>"numeric", duplicate=>["left", "right"], accessor=>'->{hash_key}',
+      prefix=>"find"};
+
+=over
+
+=item 1.
+
+Imports the subroutine "search_numeric_left"
+
+=item 2.
+
+Imports the subroutines "search_numeric_left" and "search_numeric_right"
+
+=item 3.
+
+Imports the subroutines "search_numeric_left" and "search_numeric_right" and
+uses the accessor '->{hash_key} when accessing elements. Elements must all be
+hash references and the hash key will be compared in numeric fashion.
+
+=item 4.
+
+Imports the subroutines "find_numeric_left" and "find_numeric_right" and uses
+the accessor '->method' when accessing elements. Elements must all respond to
+'method', with its return value compared in numeric fashion.
+
+=back
+
+
+Supported options during importing include:
+
+=head3 type
+
+  type=>NAME or type=[NAME,...]
+
+A plain scalar or array ref of comparison type names 
+Supported values for NAME are:
+
+=over
+
+=item numeric, nv
+
+Numerical comparison
+
+=item string, str, pv
+
+String comparison
+
+=back
+
+=head3 duplicate
+
+  duplicate=>SIDE  or pos=>[SIDE,...]
+
+A plain scalar or array ref of position names. This indicates the side to winch
+the insert position will be adjusted when handling list items with the same
+value.
+
+Supported values for SIDE are:
+
+=over
+
+=item left, lesser
+
+Choose the lower index when the duplicate items are encountered.
+
+
+=item right, greater 
+
+Choose the greater index (after duplicates) when the duplicate items are
+encountered.
+
+
+=head3 accessor
+
+  accessor=>STRING
+
+A string consisting of perl post dereferencing/method call syntax, which is used
+is to access internal levels of a list items data structure.
+
+If not specified, elements in the list are treated as numeric/string simple
+scalars. Their value are used directly in comparisons in the search algorithm.
+
+If specified, elements are dereferenced/called with the accessor. The resulting
+value is used in the comparison in the search algorithm.
+
+=head3 prefix
+
+  prefix=>STRING
+
+A string which becomes the start of the imported subroutines name. If
+unspecified, the string "search" is used.
+
+
+=head2 Using Generated/Exported subrotines
+
+The generated/imported subroutines are named in the format:
+
+  prefix_type_duplicate
+
+where prefix, type and duplicate represent the prefix, data type ( string or
+numeric) and duplicated entry handling configuration
+
+
+Routines are called with two arguments, the search key and reference to the sorted data:
+
+
+    my $insert=find_nv_left $key, \@data;
+
+
+The return value is the index in the C<@data>, which if inserting C<$key> will
+keep the list sorted.
+
+
+The value of the element located at C<$insert> my be equal to the search key.
+
+
+=head2 Annonymous Subroutines
+
+Instead of importing named subroutines into your namespace, anonymous
+subroutines can be generated.
+
+=head3 make_search
+
+  my $sub=make_search {options}
+
+Creates a search subroutine configured with a options hash ref. Each option is
+a key value pair, as described in the B<imporing> section. However only simple
+scalars are allowed, as only a single subroutine is returned per call. Multiple
+calls to this subroutine will need to be used to generate multiple search
+subroutines.
+
+This is the subroutine called internally during import to generate the
+subroutines.
+
+The option B<prefix> has no effect as the routine is anonymous.
+
+=head1 EXAMPLES
+
+This example imports routines performing numeric comparison and left and right
+duplicate handling. Two routines are imported, called  find_nv_left and
+binsearc_nv_right
+
+  use List::Insertion {type=>"nv", pos=>["left","right"]};
+
+  my @data=(10, 20, 30, 30, 40, 50);
+  # index    0  1   2   2   4   5
+  my $target;
+  my $insert;
+
+
+  $target=23;
+  
+
+  $insert=find_nv_left $target, \@data;
+  #$insert is 2,
+
+  $insert=find_nv_right $target, \@data;
+  #$insert is 4,
+
+
+=head1 COMPARISON TO OTHER MODULES
+
+L<List::BinarySearch> and the PP and XS 'sub modules' provide more flexibility
+than this module. 
+
+In terms of performance of a 10 element numeric sorted list:
+
+                Rate L::BS::PP      L::I L::BS::XS
+  L::BS::PP  12667/s        --      -83%      -91%
+  L::I       74472/s      488%        --      -49%
+  L::BS::XS 144807/s     1043%       94%        --
+
+
+
+=head1 AUTHOR
+
+Ruben Westerberg, E<lt>drclaw@mac.comE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2023 by Ruben Westerberg
+
+Licensed under MIT and perl
+
+=head1 DISCLAIMER OF WARRANTIES
+
+THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE.
+
+=cut
