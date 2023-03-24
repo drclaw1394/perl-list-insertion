@@ -23,7 +23,7 @@ Search for insertion point, right of duplicates, with accessor
 
   use List::Insertion {type=>"numeric", duplicate=>"right", accessor=>'->{value}'};
 
-  # Data has value 3 duplcated
+  # Data has value 3 duplcated. Elements are hash refs.
 
   my @data=(
     {value=>1},
@@ -252,10 +252,16 @@ binsearc_nv_right
   #$insert is 4,
 
 
-=head1 COMPARISON TO OTHER MODULES
+=head1 SEE ALSO
 
-L<List::BinarySearch> and the PP and XS 'sub modules' provide more flexibility
-than this module. 
+L<List::BinarySearch> and the L<List::BinarySearch::PP>(pure perl)  and
+L<List::BinarySearch::XS> (XS enhanced) 'sub modules' provide more flexibility
+than this module. Mainly because of the use of code blocks are used for element
+comparison.
+
+However this module which is also pure perl is about 5-6x as fast as the
+L<List::BinarySearch::PP> module and is only half the speed of the
+L<List::BinarySearch::XS> module.
 
 In terms of performance of a 10 element numeric sorted list:
 
@@ -265,6 +271,10 @@ In terms of performance of a 10 element numeric sorted list:
   L::BS::XS 144807/s     1043%       94%        --
 
 
+=head1 REPOSITORY and BUG REPORTING
+
+Please report any bugs and feature requests on the repo page:
+L<GitHub|http://github.com/drclaw1394/perl-list-insertion>
 
 =head1 AUTHOR
 
@@ -274,7 +284,8 @@ Ruben Westerberg, E<lt>drclaw@mac.comE<gt>
 
 Copyright (C) 2023 by Ruben Westerberg
 
-Licensed under MIT and perl
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, or under the MIT license
 
 =head1 DISCLAIMER OF WARRANTIES
 

@@ -66,7 +66,7 @@ my (\$key, \$array)=\@_;
   #
 		(\$middle=(\$upper+\$lower)>>1,
 
-    \$key$accessor $condition->{$fields{type}}{$fields{duplicate}} \$array->[\$middle]$accessor
+    \$key $condition->{$fields{type}}{$fields{duplicate}} \$array->[\$middle]$accessor
     $update->{$fields{duplicate}})
 	while(\$lower<\$upper);
   

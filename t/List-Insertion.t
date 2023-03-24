@@ -9,7 +9,9 @@ BEGIN { use_ok('List::Insertion') };
 use List::Insertion {type=>"string"};
 use List::Insertion {type=>"numeric", duplicate=>[qw<left right>]};
 use List::Insertion {type=>"numeric", duplicate=>[qw<left right>], prefix=>"mysearch"};
-use List::Insertion {type=>"numeric", duplicate=>[qw<left right>], prefix=>"keysearch", accessor=>"->{key}"};
+use List::Insertion {type=>"numeric", duplicate=>[qw<left right>], prefix=>"hashsearch", accessor=>"->{key}"};
+use List::Insertion {type=>"numeric", duplicate=>[qw<left right>], prefix=>"arraysearch", accessor=>"->[0]"};
+
 my $ok;
 $ok=eval {
     \&search_string_left;
@@ -62,10 +64,22 @@ ok $ok, "imported ok";
     {key=>3}
   );
 
-  my $pos=keysearch_numeric_right {key=>3}, \@data;
+  my $pos=hashsearch_numeric_right 3, \@data;
   say STDERR "POS IS $pos";
   ok $pos ==3, "accessor execution";
 
+
+}
+{
+
+  my  @data=(
+    [1],
+    [2],
+    [3]
+  );
+
+  my $pos=arraysearch_numeric_right 2, \@data;
+  ok $pos == 2, "accessor execution";
 
 }
 

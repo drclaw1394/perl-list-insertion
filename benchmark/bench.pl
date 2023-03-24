@@ -6,7 +6,7 @@ use List::Insertion {type=>"nv", duplicate=>"left"};
 
 # test
 my $max=10;
-my $size=10000;
+my $size=1000;
 my @list=sort map rand($max), 1..$size;
 my @keys=map rand($max),1..10;
 
