@@ -66,7 +66,7 @@ ok $ok, "imported ok";
   );
 
   my $pos=hashsearch_numeric_right 2, \@data;
-  say STDERR "POS IS $pos";
+ #say STDERR "POS IS $pos";
   ok $pos ==2, "accessor execution";
 
 
@@ -92,20 +92,20 @@ ok defined($sub), "Sub created";
 
 my @input=(1,2,3,4,5,6);
 
-say STDERR  $sub->(3, \@input);
-say STDERR  $sub->(3, \@input);
+#say STDERR  $sub->(3, \@input);
+#say STDERR  $sub->(3, \@input);
 
 
 use List::Insertion {
-      type=>[qw<string nv pv>],
+      type=>[qw<string numeric>],
       duplicate=>[qw"left right"],
       #accessor=>"->{my_field}",
       prefix=>"bin"
     };
 
-say STDERR "Symbol is:".\&binsearch_string_left;
-say STDERR bin_string_left 2, \@input;
-say STDERR bin_numeric_left 2, \@input;
+#say STDERR "Symbol is:".\&binsearch_string_left;
+#say STDERR bin_string_left 2, \@input;
+#say STDERR bin_numeric_left 2, \@input;
 
 
 

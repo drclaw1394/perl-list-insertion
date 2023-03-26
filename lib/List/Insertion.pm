@@ -10,14 +10,7 @@ use Data::Combination;
 use Exporter;# qw<import>;
 
 
-our %EXPORT_TAGS = ( 'all' => [ qw() ] );
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = '0.1.0';
-
+our $VERSION = 'v0.1.0';
 
 sub make_search;
 
@@ -42,7 +35,6 @@ sub import {
   push @spec, (Data::Combination::combinations $_)->@* for @import;
   
   no strict 'refs';
-  use Data::Dumper;
   for my $spec(@spec){
     $spec->{prefix}//="search";
     $spec->{type}//="string";
@@ -148,9 +140,8 @@ sub make_search {
   use feature ":all";
   use Error::Show;
   my $sub=eval($code_str);
-  say STDERR Error::Show::context error=>$@, program=>$code_str if($@ or !$sub);
-  say STDERR $code_str;
-  #wantarray?($sub,$code_str):$sub;
+  #say STDERR Error::Show::context error=>$@, program=>$code_str if($@ or !$sub);
+  #say STDERR $code_str;
   $sub;
 }
 

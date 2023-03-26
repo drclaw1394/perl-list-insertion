@@ -2,8 +2,8 @@ NAME
     List::Insertion - Binary search a list for insertion point
 
 SYNOPSIS
-    Export a named subroutine to locate the index of the first instance
-    (left) of value in a sorted simple scalar list:
+    Export a subroutine to locate the index of the first instance (left) of
+    value in a sorted simple scalar list:
 
       # Exports 'search_numeric_left' only
       #
@@ -41,8 +41,8 @@ SYNOPSIS
       else{
       }
 
-    Export a named subroutine to search for insertion point, of array of
-    hashes, right of duplicates, with accessor to comparison value:
+    Export a subroutine to search for insertion point, of array of hashes,
+    right of duplicates, with accessor to comparison value:
 
       # Data has value=>3 duplcated. Elements are hash refs so use an accessor snippet
       #
@@ -61,21 +61,21 @@ SYNOPSIS
       my $key= 3;
       my $pos=search_numeric_right $key, \@data;
 
-    Export 'make_search' and create anonymous routine instead of adding
-    named subroutines to name space
+    Export 'make_search' and create anonymous subroutine instead of
+    injecting named subroutines to name space
 
       use List:::Insertion "make_search";
 
-      my @data=(1,2,3);
+      my @data=(1, 2, 3);
 
-      my $search=List::Insertion::make_search type=>"numeric", duplicate=>"left";
+      my $search=make_search type=>"numeric", duplicate=>"left";
       my $key=2;
       my $pos=$search->($key, \@data);
 
 DESCRIPTION
     List::Insertion implements binary search algorithms to locate the
-    insertion point of a sorted list for a given target value. If the value
-    were to be inserted at that position, the list would remain sorted.
+    insertion point of a sorted list for a given value. If the value were to
+    be inserted at that position, the list would remain sorted.
 
     A distinction is made between inserting left or right of an exact match
     or duplicated entry. This allows to insert data before contiguous equal
@@ -85,38 +85,102 @@ DESCRIPTION
     and necessitates the following restrictions on the data stored in the
     array/list and how it's compared:
 
-    Data is expected to be sorted in asscending order only
+    Data must be sorted in asscending order only
         This simplifies the combinations of subroutines exported
 
     No code blocks can be specified
-        Code blocks need to be called. While they are ultimate if
-        flexibility, 90% of the functionality can be achieved with
-        'accessor' snippets.
+        While code blocks are very flexible, 90% of the functionality can be
+        achieved with 'accessor' snippets.
 
     Element comparision is implicitly numerical or string
         No object methods for comparison. Only basic "<=>", ">=", "le" and
         "ge" operators are used for internally for string and numeric
         comparison.
 
-    List element are homogeneous (no undefined items)
-        All items in the list are expected to have have the same data
-        structure. This can be a simple scalar like a string, or complex
-        like array of arrays or hashes of objects to any level of
-        complexity. It doesn't matter, as long as all the items are of the
-        same structure. When using complex scalars, the accessor snippet is
-        used as the code to access the value for search comparison.
+    List element must be homogeneous and defined
+        All items in the list are expected to have the same data structure.
+        The structure can be a simple scalar like a string or number, in
+        which case no 'acceesor' snippet is used.
 
-    Although intended for searching of insertion point, this module can also
-    be used for general searching of elements. A simple check of equality
-    between the search key and value at the found index will determine if
-    the value was actually found or not.
+        On the other hand it could be complex, like an array of arrays or
+        hashes of objects to any level. The only restriction in this case is
+        the 'accessor' snippet is able to access the value for comparison
+        via post dereferencing or method calls
+
+    Although intended for searching for a insertion point, this module can
+    also be used for general searching of elements. A simple check of
+    equality between the search key and value at the found index will
+    determine if the value was actually found or not.
 
     The returned index will never indicate 'not found' as there is always a
     insert location in a list.
 
-    No symbols are exported by default and specification given at import
-    time are used to generate and export the search routine (s) needed.
-    Anonymous search subroutines can also be generated.
+    No symbols are exported by default. Specifications given at import time
+    are used to generate and export the search routine (s) needed. Anonymous
+    search subroutines can also be generated.
+
+WHEN TO USE
+  Building/Updating an Already Sorted List
+    Perl is pretty fast when sorting bulk array data in a single sort call.
+    However adding a single new value and resorting an existing array is not
+    nearly as fast.
+
+    Normally to update an already sorted array with a new value, you would
+    push the new value to the list and resort. This module can improve
+    performance by first locating the insert point at which you would splice
+    in the new value. For example:
+
+      eg.
+    
+        # Performance Cross over point is around 120-130 elements
+
+        my @data= map rand(10), 1..1000; 
+
+        my $key=4.3;
+
+        # Instead of this ...
+        #
+        my @perl_sort;
+        push @perl_sort, $key;
+        @perl_sort=sort {$a <=> $b} @perl_sort;
+
+        # Do this ...
+        #
+        my @sorted;
+        my $pos;
+        if(@sort){
+          $pos=search_numeric_left $key, \@sorted;
+          splice @sorted, $pos, 0, $key;
+        }
+        else {
+          push @sorted, $key;
+        }
+
+    A benchmarking script demonstrating this included in the distribution:
+
+      Results for contructing/sorting an array with 1000 random numeric elements
+      one element at a time
+
+                             Rate      perl_sort_update list_insertion_update
+      perl_sort_update      198/s                    --                  -78%
+      list_insertion_update 881/s                  345%                    --
+
+  Pure Perl Performance
+    This module gives better pure perl binary search performance than
+    similar modules using code blocks for comparison. If you don't need the
+    full flexibility of a CODE block to act as a comparison, then this
+    module can give you a nice speed boost. If you using an XS module then
+    that most likely would still be faster.
+
+    A benchmarking script demonstrating this included in the distribution:
+
+      Searching a 10000 element numeric sorted list, compared with
+      List::BinarySearch::PP and List::BinarySearch::XS
+
+                    Rate L::BS::PP      L::I L::BS::XS
+      L::BS::PP  12667/s        --      -83%      -91%
+      L::I       74472/s      488%        --      -49%
+      L::BS::XS 144807/s     1043%       94%        --
 
 API
   Importing
@@ -139,7 +203,7 @@ API
         };
 
         use List::Insertion {                                               #(4)
-          type=>"numeric", duplicate=>["left", "right"], accessor=>'->{hash_key}',
+          type=>"numeric", duplicate=>["left", "right"], accessor=>'->{hash_key}->method',
           prefix=>"find"};
 
     1.  Imports the subroutine "search_numeric_left"
@@ -153,58 +217,98 @@ API
         hash key will be compared in numeric fashion.
 
     4.  Imports the subroutines "find_numeric_left" and "find_numeric_right"
-        and uses the accessor '->method' when accessing elements. Elements
-        must all respond to 'method', with its return value compared in
-        numeric fashion.
+        and uses the accessor '->{hash_key}->method' when accessing
+        elements. Elements must all respond to 'method', with its return
+        value compared in numeric fashion.
+
+    The default values of supported options are used if no matching options
+    are present in an import specification. The defaults are:
+
+      type=>"string",
+      duplicate=>"left",
+      accessor=>"",
+      prefix=>"search"
 
     Supported options during importing include:
 
    type
       type=>NAME or type=[NAME,...]
 
-    A plain scalar or array ref of comparison type names Supported values
-    for NAME are:
+    A plain scalar or array ref of comparison type names. The type is
+    implicitly used as the second part of an exported subroutines name.
+    Supported values for NAME are:
 
-    numeric, nv
+    numeric
         Numerical comparison
 
-    string, pv
+    string
         String comparison
 
    duplicate
       duplicate=>SIDE  or pos=>[SIDE,...]
 
-    A plain scalar or array ref of position names. This indicates the side
-    to winch the insert position will be adjusted when handling list items
-    with the same value.
+    A plain scalar or array ref of side names. The side to choose when
+    duplicate values are encountered. This is used implictily as the last
+    part of an exported subroutines name.
 
     Supported values for SIDE are:
 
     left, lesser
         Choose the lower index when the duplicate items are encountered.
 
+          eg 
+            my @list=( 10, 20, 20, 20, 30)
+                          /\
+                          ||
+
+            A 'left' search for 20 will result in a index of 1
+
     right, greater
         Choose the greater index (after duplicates) when the duplicate items
         are encountered.
+
+          eg  
+            my @list=( 10, 20, 20, 20, 30)
+                                      /\
+                                      ||
+            A 'right' search for 20 will result in a index of 4
 
    accessor
       accessor=>STRING
 
     A string consisting of perl post dereferencing/method call syntax, which
-    is used is to access internal levels of a list items data structure.
+    is used is to access internal levels of a element's data structure.
+    Internally this string is literally appending to the array element
+    indexing code:
 
-    If not specified, elements in the list are treated as numeric/string
-    simple scalars. Their value are used directly in comparisons in the
-    search algorithm.
+      eg
+        Acessor: ->{hash_ref}[array_deref]->method
+        Interal code: ... $array[$index] ...
+
+        Resulting code: ... $array[$index]->{hash_ref}[array_deref]->method ...
+
+    If not specified, it is treated as an empty string, and elements in the
+    list are treated as numeric/string simple scalars. Their value are used
+    directly in comparisons in the search algorithm.
 
     If specified, elements are dereferenced/called with the accessor. The
     resulting value is used in the comparison in the search algorithm.
+
+    The value of the search key is NOT subject to the accessor and is used
+    directly in comparison.
 
    prefix
       prefix=>STRING
 
     A string which becomes the start of the imported subroutines name. If
     unspecified, the string "search" is used.
+
+      eg 
+        use List::Insertion {prefix=>"my_searcher", ...};
+
+        # The subrotine imported will start with my_searcher
+
+        my $pos=my_searcher_...
 
   Using Generated/Exported subrotines
     The generated/imported subroutines are named in the format:
@@ -224,6 +328,11 @@ API
 
     The value of the element located at $insert my be equal to the search
     key.
+
+    NOTE: Search routines never return less then 0 or otherwise indicate
+    'element not found'. The index is always the point when data can be
+    inserted. So an empty list will always return a found index of 0, as
+    this where element would be inserted.
 
   Annonymous Subroutines
     Instead of importing named subroutines into your namespace, anonymous
@@ -245,22 +354,22 @@ API
 
     The option prefix has no effect as the routine is anonymous.
 
+FUTURE WORK
+    Make an XS version
+        That could be tricky with the accessor feature.
+
+    Validate accessor
+        Add a 'validator' for testing/confirmation of accessor syntax
+
 SEE ALSO
     List::BinarySearch and the List::BinarySearch::PP(pure perl) and
     List::BinarySearch::XS (XS enhanced) 'sub modules' provide more
     flexibility than this module. Mainly because of the use of code blocks
-    are used for element comparison.
+    are for element comparison.
 
     However this module which is also pure perl is about 5-6x as fast as the
     List::BinarySearch::PP module and is only half the speed of the
     List::BinarySearch::XS module.
-
-    In terms of performance of a 10 element numeric sorted list:
-
-                    Rate L::BS::PP      L::I L::BS::XS
-      L::BS::PP  12667/s        --      -83%      -91%
-      L::I       74472/s      488%        --      -49%
-      L::BS::XS 144807/s     1043%       94%        --
 
 REPOSITORY and BUG REPORTING
     Please report any bugs and feature requests on the repo page: GitHub
