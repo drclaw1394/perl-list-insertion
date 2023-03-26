@@ -10,7 +10,7 @@ use Data::Combination;
 use Exporter;# qw<import>;
 
 
-our $VERSION = 'v0.1.0';
+our $VERSION = 'v0.1.1';
 
 sub make_search;
 
