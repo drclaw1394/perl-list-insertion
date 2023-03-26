@@ -25,14 +25,19 @@ sub import {
 
   shift;
   my @import=@_;
-  use Data::Dumper;
-  say STDERR "IMPORT:". Dumper @import;
 
-  #Build up a 
-  
   # Generate subs based on import options
   my ($package)=caller;
+
+  # Import make search if requested
+  #
+  if(@import==1 and grep /make_search/, @import){
+    no strict 'refs';
+    *{$package."::make_search"}=\&make_search;
+    return;
+  }
   
+  # Otherwise assume we have a list of specifications
   my @spec;
   push @spec, (Data::Combination::combinations $_)->@* for @import;
   
@@ -64,12 +69,12 @@ my (\$key, \$array)=\@_;
 
   # TODO: Run in eval for accessor fall back
   #
-		(\$middle=(\$upper+\$lower)>>1,
-
+  local \$_;
+	while(\$lower<\$upper){
+		\$middle=(\$upper+\$lower)>>1;
     \$key $condition->{$fields{type}}{$fields{duplicate}} \$array->[\$middle]$accessor
-    $update->{$fields{duplicate}})
-	while(\$lower<\$upper);
-  
+    $update->{$fields{duplicate}}
+  } 
 	\$lower;
 }
 ';
@@ -84,21 +89,6 @@ my %condition=(
       right=>'>='
     },
 
-    ##################
-    # pv=>{          #
-    #   left=>'le',  #
-    #   right=>'ge', #
-    # },             #
-    # nv=>{          #
-    #   left=>'<=',  #
-    #   right=>'>='  #
-    # },             #
-    #                #
-    # int=>{         #
-    #   left=>'<=',  #
-    #   right=>'>='  #
-    # }              #
-    ##################
 );
 
 

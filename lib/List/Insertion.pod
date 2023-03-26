@@ -4,76 +4,129 @@ List::Insertion - Binary search a list for insertion point
 
 =head1 SYNOPSIS
 
-Search for insertion point, left of duplicates.
+Export a named subroutine to locate the index of the first instance (left) of
+value in a sorted simple scalar list:
 
+  # Exports 'search_numeric_left' only
+  #
   use List::Insertion {type=>"numeric", duplicate=>"left"};
 
-  # Data has value 3 duplcated
+  # Data has value 30 duplcated
 
-  my @data=(1, 2, 3, 3, 4, 5, 6, 7);
+  my @data=(10, 20, 30, 30, 40, 50, 60, 70);
+  #index    0   1   2   3   4   5   6   7
 
-  my $key= 3;
-
-  # The insert position will be 2, which is left of duplicates
+  # The insert position will be index 2, which is left of duplicates
   #
+  my $key= 30;
   my $pos=search_numeric_left $key, \@data;
 
+  if($data[$pos] == $key){
+    # Exact match, $pos is the index of the searched $key in the array (left)
+  }
+  else{
+    # $pos is the index where $key should be inserted
+  }  
 
-Search for insertion point, right of duplicates, with accessor
+Same as above with string comparison:
 
+  use List::Insertion {type=>"string", duplicate=>"left"};
+
+  my @data=qw<10 20 30 30 40 50 60 70>;
+  #index      0  1  2  3  4  5  6  7
+
+  my $key= "30";
+  my $pos=search_string_left $key, \@data;
+
+  if($data[$pos] eq $key){
+  }
+  else{
+  }  
+
+Export a named subroutine to search for insertion point, of array of hashes,
+right of duplicates, with accessor to comparison value:
+
+  # Data has value=>3 duplcated. Elements are hash refs so use an accessor snippet
+  #
   use List::Insertion {type=>"numeric", duplicate=>"right", accessor=>'->{value}'};
-
-  # Data has value 3 duplcated. Elements are hash refs.
-
   my @data=(
-    {value=>1},
-    {value=>2},
-    {value=>3},
-    {value=>3},
-    {value=>4},
-    {value=>5},
+    {value=>1, other=>"a"},
+    {value=>2, other=>"b"},
+    {value=>3, other=>"c"},
+    {value=>3, other=>"d"},
+    {value=>4, other=>"e"},
+    {value=>5, other=>"f"},
   );
 
-  my $key= 3;
-
-  # The insert position will be 4, which is right of duplicates
+  # The insert position will be index 4, which is right of duplicates
   #
-  my $pos=search_numeric_left {value=>$key}, \@data;
+  my $key= 3;
+  my $pos=search_numeric_right $key, \@data;
 
 
+Export 'make_search' and create anonymous routine instead of adding named
+subroutines to name space
+
+  use List:::Insertion "make_search";
+
+  my @data=(1,2,3);
+
+  my $search=List::Insertion::make_search type=>"numeric", duplicate=>"left";
+  my $key=2;
+  my $pos=$search->($key, \@data);
 
 =head1 DESCRIPTION
 
-L<List::Insertion> is a module implementing binary search algorithms to locate
-the B<insertion> point of a sorted list for a given target value. If the value
-were to be inserted at that position, the list would remain sorted.
+L<List::Insertion> implements binary search algorithms to locate the
+B<insertion> point of a sorted list for a given target value. If the value were
+to be inserted at that position, the list would remain sorted.
+
+A distinction is made between inserting left or right of an exact match or
+duplicated entry. This allows to insert data before contiguous equal items or
+after.
 
 Performance rather than flexibility is favoured in the implementation and
-necessitates the following restrictions on the data stored in the
-array/list and how it's compared:
+necessitates the following restrictions on the data stored in the array/list
+and how it's compared:
 
 =over 
 
+=item Data is expected to be sorted in asscending order only
+
+This simplifies the combinations of subroutines exported
+
 =item No code blocks can be specified
+
+Code blocks need to be called. While they are ultimate if flexibility, 90% of
+the functionality can be achieved with 'accessor' snippets.
 
 =item Element comparision is implicitly numerical or string
 
-=item Data is expected to be sorted in asscending order only
+No object methods for comparison. Just basic C<E<<=>>,C<E<>=>, C<le>  and C<ge>
+operators are used for string and numeric comparison.
 
-=item List element are homogeneous
+=item List element are homogeneous (no undefined items)
+
+The items in the list are expected to have have the same (complex) data
+structure. This can be a simple scalar like a or and array of arrays or hashes
+to any level of complexity. They can also be a object (a reference). It doesn't
+matter, as long as all the items are of the same structure.
 
 =back
 
-Fortunately, elements are not restricted to simple scalars. An 'accessor' code
-snippet can be specified to access the comparison value in nested data
-structures. Each element in the array must be of the same structure of course.
+Although intended for searching of insertion points, this module can also be
+used for general searching of elements with a simple check of equality between
+the search key and  value at the found index. 
+
+The returned index will never indicate 'not found' as there is always a insert
+location in a list.
 
 
 =head1  API
 
 =head2 Importing
 
-When importing this modules, the type of comparison (string or numeric) and the
+When importing this module, the type of comparison (string or numeric) and the
 behaviour in dealing with duplicate values (left or right) is specified along
 with optional accessor and prefix options.
 
@@ -135,7 +188,7 @@ Supported values for NAME are:
 
 Numerical comparison
 
-=item string, str, pv
+=item string, pv
 
 String comparison
 
@@ -211,45 +264,24 @@ The value of the element located at C<$insert> my be equal to the search key.
 =head2 Annonymous Subroutines
 
 Instead of importing named subroutines into your namespace, anonymous
-subroutines can be generated.
+subroutines can be generated by importing the C<make_search> subroutine:
+
+  use List::Insertion "make_search";
 
 =head3 make_search
 
   my $sub=make_search {options}
 
 Creates a search subroutine configured with a options hash ref. Each option is
-a key value pair, as described in the B<imporing> section. However only simple
-scalars are allowed, as only a single subroutine is returned per call. Multiple
-calls to this subroutine will need to be used to generate multiple search
-subroutines.
+a key value pair, as described in the B<importing> section. Only simple scalars
+key/values are allowed, as only a single subroutine is returned per call.
+Multiple calls to this subroutine will need to be used to generate multiple
+search subroutines.
 
-This is the subroutine called internally during import to generate the
+This is the subroutine called internally during import to generate the named
 subroutines.
 
 The option B<prefix> has no effect as the routine is anonymous.
-
-=head1 EXAMPLES
-
-This example imports routines performing numeric comparison and left and right
-duplicate handling. Two routines are imported, called  find_nv_left and
-binsearc_nv_right
-
-  use List::Insertion {type=>"nv", pos=>["left","right"]};
-
-  my @data=(10, 20, 30, 30, 40, 50);
-  # index    0  1   2   2   4   5
-  my $target;
-  my $insert;
-
-
-  $target=23;
-  
-
-  $insert=find_nv_left $target, \@data;
-  #$insert is 2,
-
-  $insert=find_nv_right $target, \@data;
-  #$insert is 4,
 
 
 =head1 SEE ALSO

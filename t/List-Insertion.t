@@ -6,6 +6,7 @@ use feature ":all";
 use Test::More;
 BEGIN { use_ok('List::Insertion') };
 
+use List::Insertion "make_search";
 use List::Insertion {type=>"string"};
 use List::Insertion {type=>"numeric", duplicate=>[qw<left right>]};
 use List::Insertion {type=>"numeric", duplicate=>[qw<left right>], prefix=>"mysearch"};
@@ -64,9 +65,9 @@ ok $ok, "imported ok";
     {key=>3}
   );
 
-  my $pos=hashsearch_numeric_right 3, \@data;
+  my $pos=hashsearch_numeric_right 2, \@data;
   say STDERR "POS IS $pos";
-  ok $pos ==3, "accessor execution";
+  ok $pos ==2, "accessor execution";
 
 
 }
@@ -83,7 +84,7 @@ ok $ok, "imported ok";
 
 }
 
-my $sub=List::Insertion::make_search {type=>"nv", duplicate=>"left", accessor=>""};
+my $sub=make_search {type=>"nv", duplicate=>"left", accessor=>""};
 
 ok defined($sub), "Sub created";
 
@@ -111,8 +112,8 @@ say STDERR bin_numeric_left 2, \@input;
 {
   # Test duplicates
   my @input=(10,20,30,30, 40,50);
-  my $left=List::Insertion::make_search {type=>"nv", duplicate=>"left", accessor=>""};
-  my $right=List::Insertion::make_search {type=>"nv", duplicate=>"right", accessor=>""};
+  my $left=make_search {type=>"nv", duplicate=>"left", accessor=>""};
+  my $right=make_search {type=>"nv", duplicate=>"right", accessor=>""};
 
   my $key=30;
   my $index=bin_numeric_left $key, \@input;
