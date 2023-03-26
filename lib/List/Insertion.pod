@@ -102,25 +102,30 @@ the functionality can be achieved with 'accessor' snippets.
 
 =item Element comparision is implicitly numerical or string
 
-No object methods for comparison. Just basic C<E<<=>>,C<E<>=>, C<le>  and C<ge>
-operators are used for string and numeric comparison.
+No object methods for comparison. Only basic C<E<lt>=E<gt>>, C<E<gt>=>, C<le>
+and C<ge> operators are used for internally for string and numeric comparison.
 
 =item List element are homogeneous (no undefined items)
 
-The items in the list are expected to have have the same (complex) data
-structure. This can be a simple scalar like a or and array of arrays or hashes
-to any level of complexity. They can also be a object (a reference). It doesn't
-matter, as long as all the items are of the same structure.
+All items in the list are expected to have have the same data structure. This
+can be a simple scalar like a string, or complex like array of arrays or hashes
+of objects to any level of complexity.  It doesn't matter, as long as all the
+items are of the same structure. When using complex scalars, the accessor
+snippet is used as the code to access the value for search comparison.
 
 =back
 
-Although intended for searching of insertion points, this module can also be
-used for general searching of elements with a simple check of equality between
-the search key and  value at the found index. 
+Although intended for searching of insertion point, this module can also be
+used for general searching of elements. A simple check of equality between the
+search key and  value at the found index will determine if the value was
+actually found or not.
 
 The returned index will never indicate 'not found' as there is always a insert
 location in a list.
 
+No symbols are exported by default and specification given at import time are
+used to generate and export the search routine (s) needed. Anonymous search
+subroutines can also be generated.
 
 =head1  API
 
@@ -217,6 +222,8 @@ Choose the greater index (after duplicates) when the duplicate items are
 encountered.
 
 
+=back
+
 =head3 accessor
 
   accessor=>STRING
@@ -260,6 +267,11 @@ keep the list sorted.
 
 The value of the element located at C<$insert> my be equal to the search key.
 
+B<NOTE:> Search routines never return less then 0 or otherwise indicate
+'element not found'. The index is always the point when data can be inserted.
+So an empty list will always return a found index of 0, as this where element
+would be inserted.
+
 
 =head2 Annonymous Subroutines
 
@@ -295,7 +307,7 @@ However this module which is also pure perl is about 5-6x as fast as the
 L<List::BinarySearch::PP> module and is only half the speed of the
 L<List::BinarySearch::XS> module.
 
-In terms of performance of a 10 element numeric sorted list:
+In terms of performance of a 10000 element numeric sorted list:
 
                 Rate L::BS::PP      L::I L::BS::XS
   L::BS::PP  12667/s        --      -83%      -91%

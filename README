@@ -1,40 +1,282 @@
-List-Insertion version 0.01
-===========================
+NAME
+    List::Insertion - Binary search a list for insertion point
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+SYNOPSIS
+    Export a named subroutine to locate the index of the first instance
+    (left) of value in a sorted simple scalar list:
 
-A README file is required for CPAN modules since CPAN extracts the
-README file from a module distribution so that people browsing the
-archive can use it get an idea of the modules uses. It is usually a
-good idea to provide version information here so that people can
-decide whether fixes for the module are worth downloading.
+      # Exports 'search_numeric_left' only
+      #
+      use List::Insertion {type=>"numeric", duplicate=>"left"};
 
-INSTALLATION
+      # Data has value 30 duplcated
 
-To install this module type the following:
+      my @data=(10, 20, 30, 30, 40, 50, 60, 70);
+      #index    0   1   2   3   4   5   6   7
 
-   perl Makefile.PL
-   make
-   make test
-   make install
+      # The insert position will be index 2, which is left of duplicates
+      #
+      my $key= 30;
+      my $pos=search_numeric_left $key, \@data;
 
-DEPENDENCIES
+      if($data[$pos] == $key){
+        # Exact match, $pos is the index of the searched $key in the array (left)
+      }
+      else{
+        # $pos is the index where $key should be inserted
+      }
 
-This module requires these other modules and libraries:
+    Same as above with string comparison:
 
-  blah blah blah
+      use List::Insertion {type=>"string", duplicate=>"left"};
 
-COPYRIGHT AND LICENCE
+      my @data=qw<10 20 30 30 40 50 60 70>;
+      #index      0  1  2  3  4  5  6  7
 
-Put the correct copyright and licence information here.
+      my $key= "30";
+      my $pos=search_string_left $key, \@data;
 
-Copyright (C) 2023 by Ruben Westerberg
+      if($data[$pos] eq $key){
+      }
+      else{
+      }
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.36.0 or,
-at your option, any later version of Perl 5 you may have available.
+    Export a named subroutine to search for insertion point, of array of
+    hashes, right of duplicates, with accessor to comparison value:
 
+      # Data has value=>3 duplcated. Elements are hash refs so use an accessor snippet
+      #
+      use List::Insertion {type=>"numeric", duplicate=>"right", accessor=>'->{value}'};
+      my @data=(
+        {value=>1, other=>"a"},
+        {value=>2, other=>"b"},
+        {value=>3, other=>"c"},
+        {value=>3, other=>"d"},
+        {value=>4, other=>"e"},
+        {value=>5, other=>"f"},
+      );
+
+      # The insert position will be index 4, which is right of duplicates
+      #
+      my $key= 3;
+      my $pos=search_numeric_right $key, \@data;
+
+    Export 'make_search' and create anonymous routine instead of adding
+    named subroutines to name space
+
+      use List:::Insertion "make_search";
+
+      my @data=(1,2,3);
+
+      my $search=List::Insertion::make_search type=>"numeric", duplicate=>"left";
+      my $key=2;
+      my $pos=$search->($key, \@data);
+
+DESCRIPTION
+    List::Insertion implements binary search algorithms to locate the
+    insertion point of a sorted list for a given target value. If the value
+    were to be inserted at that position, the list would remain sorted.
+
+    A distinction is made between inserting left or right of an exact match
+    or duplicated entry. This allows to insert data before contiguous equal
+    items or after.
+
+    Performance rather than flexibility is favoured in the implementation
+    and necessitates the following restrictions on the data stored in the
+    array/list and how it's compared:
+
+    Data is expected to be sorted in asscending order only
+        This simplifies the combinations of subroutines exported
+
+    No code blocks can be specified
+        Code blocks need to be called. While they are ultimate if
+        flexibility, 90% of the functionality can be achieved with
+        'accessor' snippets.
+
+    Element comparision is implicitly numerical or string
+        No object methods for comparison. Only basic "<=>", ">=", "le" and
+        "ge" operators are used for internally for string and numeric
+        comparison.
+
+    List element are homogeneous (no undefined items)
+        All items in the list are expected to have have the same data
+        structure. This can be a simple scalar like a string, or complex
+        like array of arrays or hashes of objects to any level of
+        complexity. It doesn't matter, as long as all the items are of the
+        same structure. When using complex scalars, the accessor snippet is
+        used as the code to access the value for search comparison.
+
+    Although intended for searching of insertion point, this module can also
+    be used for general searching of elements. A simple check of equality
+    between the search key and value at the found index will determine if
+    the value was actually found or not.
+
+    The returned index will never indicate 'not found' as there is always a
+    insert location in a list.
+
+    No symbols are exported by default and specification given at import
+    time are used to generate and export the search routine (s) needed.
+    Anonymous search subroutines can also be generated.
+
+API
+  Importing
+    When importing this module, the type of comparison (string or numeric)
+    and the behaviour in dealing with duplicate values (left or right) is
+    specified along with optional accessor and prefix options.
+
+    Combinations of these options are generated via "Data::Combination",
+    allowing multiple subroutines to be configured and returned with minimal
+    typing.
+
+    Consider the following examples:
+
+        use List::Insertion {type=>"numeric", position=>left};                #(1)
+
+        use List::Insertion {type=>"numeric", position=>["left", "right"]};   #(2)
+
+        use List::Insertion {                                               #(3)
+          type=>"numeric", duplicate=>["left", "right"], accessor=>'->{hash_key}'
+        };
+
+        use List::Insertion {                                               #(4)
+          type=>"numeric", duplicate=>["left", "right"], accessor=>'->{hash_key}',
+          prefix=>"find"};
+
+    1.  Imports the subroutine "search_numeric_left"
+
+    2.  Imports the subroutines "search_numeric_left" and
+        "search_numeric_right"
+
+    3.  Imports the subroutines "search_numeric_left" and
+        "search_numeric_right" and uses the accessor '->{hash_key} when
+        accessing elements. Elements must all be hash references and the
+        hash key will be compared in numeric fashion.
+
+    4.  Imports the subroutines "find_numeric_left" and "find_numeric_right"
+        and uses the accessor '->method' when accessing elements. Elements
+        must all respond to 'method', with its return value compared in
+        numeric fashion.
+
+    Supported options during importing include:
+
+   type
+      type=>NAME or type=[NAME,...]
+
+    A plain scalar or array ref of comparison type names Supported values
+    for NAME are:
+
+    numeric, nv
+        Numerical comparison
+
+    string, pv
+        String comparison
+
+   duplicate
+      duplicate=>SIDE  or pos=>[SIDE,...]
+
+    A plain scalar or array ref of position names. This indicates the side
+    to winch the insert position will be adjusted when handling list items
+    with the same value.
+
+    Supported values for SIDE are:
+
+    left, lesser
+        Choose the lower index when the duplicate items are encountered.
+
+    right, greater
+        Choose the greater index (after duplicates) when the duplicate items
+        are encountered.
+
+   accessor
+      accessor=>STRING
+
+    A string consisting of perl post dereferencing/method call syntax, which
+    is used is to access internal levels of a list items data structure.
+
+    If not specified, elements in the list are treated as numeric/string
+    simple scalars. Their value are used directly in comparisons in the
+    search algorithm.
+
+    If specified, elements are dereferenced/called with the accessor. The
+    resulting value is used in the comparison in the search algorithm.
+
+   prefix
+      prefix=>STRING
+
+    A string which becomes the start of the imported subroutines name. If
+    unspecified, the string "search" is used.
+
+  Using Generated/Exported subrotines
+    The generated/imported subroutines are named in the format:
+
+      prefix_type_duplicate
+
+    where prefix, type and duplicate represent the prefix, data type (
+    string or numeric) and duplicated entry handling configuration
+
+    Routines are called with two arguments, the search key and reference to
+    the sorted data:
+
+        my $insert=find_nv_left $key, \@data;
+
+    The return value is the index in the @data, which if inserting $key will
+    keep the list sorted.
+
+    The value of the element located at $insert my be equal to the search
+    key.
+
+  Annonymous Subroutines
+    Instead of importing named subroutines into your namespace, anonymous
+    subroutines can be generated by importing the "make_search" subroutine:
+
+      use List::Insertion "make_search";
+
+   make_search
+      my $sub=make_search {options}
+
+    Creates a search subroutine configured with a options hash ref. Each
+    option is a key value pair, as described in the importing section. Only
+    simple scalars key/values are allowed, as only a single subroutine is
+    returned per call. Multiple calls to this subroutine will need to be
+    used to generate multiple search subroutines.
+
+    This is the subroutine called internally during import to generate the
+    named subroutines.
+
+    The option prefix has no effect as the routine is anonymous.
+
+SEE ALSO
+    List::BinarySearch and the List::BinarySearch::PP(pure perl) and
+    List::BinarySearch::XS (XS enhanced) 'sub modules' provide more
+    flexibility than this module. Mainly because of the use of code blocks
+    are used for element comparison.
+
+    However this module which is also pure perl is about 5-6x as fast as the
+    List::BinarySearch::PP module and is only half the speed of the
+    List::BinarySearch::XS module.
+
+    In terms of performance of a 10 element numeric sorted list:
+
+                    Rate L::BS::PP      L::I L::BS::XS
+      L::BS::PP  12667/s        --      -83%      -91%
+      L::I       74472/s      488%        --      -49%
+      L::BS::XS 144807/s     1043%       94%        --
+
+REPOSITORY and BUG REPORTING
+    Please report any bugs and feature requests on the repo page: GitHub
+    <http://github.com/drclaw1394/perl-list-insertion>
+
+AUTHOR
+    Ruben Westerberg, <drclaw@mac.com>
+
+COPYRIGHT AND LICENSE
+    Copyright (C) 2023 by Ruben Westerberg
+
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself, or under the MIT license
+
+DISCLAIMER OF WARRANTIES
+    THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+    WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
