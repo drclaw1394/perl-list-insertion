@@ -133,7 +133,27 @@ No symbols are exported by default. Specifications given at import time are
 used to generate and export the search routine (s) needed. Anonymous search
 subroutines can also be generated.
 
-# WHEN TO USE
+# PERFORMANCE
+
+## General Binary Search Performance
+
+Thanks to the lack of a CODE blocks and more streamlined comparison, this
+module is on par with [List::BinarySearch::XS](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3AXS) for at least one level of
+structured data. Not bad for pure perl.
+
+Please see the associated benchmarking script `bench.pl` in this distribution:
+
+```
+Results for searching an array with 1000 random numeric elements stored in a
+key/value hash. The keys searched are also randomly generated and may not
+existing inthe sorted list. Comparision between List::BinarySearch::PP,
+List::BinarySearch::XS, and List::Insertion
+
+             Rate L::BS::PP      L::I L::BS::XS
+L::BS::PP 14902/s        --      -80%      -81%
+L::I      74796/s      402%        --       -6%
+L::BS::XS 79644/s      434%        6%        --
+```
 
 ## Building/Updating an Already Sorted List
 
@@ -142,15 +162,13 @@ adding a single new value and resorting an existing array is not nearly as
 fast.
 
 Normally to update an already sorted array with a new value, you would push the
-new value to the list and resort. This module can improve performance by first
+new value to the array and resort. This module can improve performance by first
 locating the insert point at which you would splice in the new value. For
 example:
 
 ```perl
 eg.
   
-  # Performance Cross over point is around 120-130 elements
-
   my @data= map rand(10), 1..1000; 
 
   my $key=4.3;
@@ -174,35 +192,23 @@ eg.
   }
 ```
 
-A benchmarking script demonstrating this included in the distribution:
+The benchmarking script `build-sorted.pl` in this distribution demonstrates
+building a list where each element is a key value pair (hash) storing a random
+value.  This module is within approx 20% of the XS implementation of
+[List::BinarySearch::XS](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3AXS) and is much faster than the pure perl
+[List::BinarySearch::PP](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3APP).
 
 ```
-Results for contructing/sorting an array with 1000 random numeric elements
-one element at a time
+Results for constructing/sorting an array with 1000 random numeric elements
+one element at a time. Each element is key/value hash.  Comparision between
+List::BinarySearch::PP, List::BinarySearch::XS, perl sort, and
+List::Insertion
 
-                       Rate      perl_sort_update list_insertion_update
-perl_sort_update      198/s                    --                  -78%
-list_insertion_update 881/s                  345%                    --
-```
-
-## Pure Perl Performance
-
-This module gives better pure perl binary search performance than similar
-modules using code blocks for comparison. If you don't need the full
-flexibility of a CODE block to act as a comparison, then this module can give
-you a nice speed boost. If you using an XS module then that most likely would
-still be faster.
-
-A benchmarking script demonstrating this included in the distribution:
-
-```
-Searching a 10000 element numeric sorted list, compared with
-List::BinarySearch::PP and List::BinarySearch::XS
-
-              Rate L::BS::PP      L::I L::BS::XS
-L::BS::PP  12667/s        --      -83%      -91%
-L::I       74472/s      488%        --      -49%
-L::BS::XS 144807/s     1043%       94%        --
+                   Rate perl_sort_update L_BS_PP_update L_I_update L_BS_XS_update
+perl_sort_update 25.5/s               --           -86%       -97%           -97%
+L_BS_PP_update    179/s             603%             --       -76%           -81%
+L_I_update        760/s            2884%           325%         --           -18%
+L_BS_XS_update    922/s            3523%           416%        21%             --
 ```
 
 # API
@@ -279,7 +285,7 @@ duplicate=>SIDE  or pos=>[SIDE,...]
 ```
 
 A plain scalar or array ref of side names. The side to choose when duplicate
-values are encountered. This is used implictily as the last part of an exported
+values are encountered. This is used implicitly as the last part of an exported
 subroutines name.
 
 Supported values for SIDE are:
@@ -356,34 +362,7 @@ eg
   my $pos=my_searcher_...
 ```
 
-## Using Generated/Exported subrotines
-
-The generated/imported subroutines are named in the format:
-
-```
-prefix_type_duplicate
-```
-
-where prefix, type and duplicate represent the prefix, data type ( string or
-numeric) and duplicated entry handling configuration
-
-Routines are called with two arguments, the search key and reference to the sorted data:
-
-```perl
-my $insert=find_nv_left $key, \@data;
-```
-
-The return value is the index in the `@data`, which if inserting `$key` will
-keep the list sorted.
-
-The value of the element located at `$insert` my be equal to the search key.
-
-**NOTE:** Search routines never return less then 0 or otherwise indicate
-'element not found'. The index is always the point when data can be inserted.
-So an empty list will always return a found index of 0, as this where element
-would be inserted.
-
-## Annonymous Subroutines
+## Anonymous Subroutines
 
 Instead of importing named subroutines into your namespace, anonymous
 subroutines can be generated by importing the `make_search` subroutine:
@@ -409,6 +388,34 @@ subroutines.
 
 The option **prefix** has no effect as the routine is anonymous.
 
+## Using Generated or Exported subrotines
+
+The generated/imported subroutines are named in the format:
+
+```
+prefix_type_duplicate
+```
+
+where prefix, type and duplicate represent the prefix, data type ( string or
+numeric) and duplicated entry handling (left or right) configuration
+
+These routines are called with two arguments, the search key and reference to
+the sorted data:
+
+```perl
+my $insert=find_nv_left $key, \@data;
+```
+
+The return value is the index in the `@data`, which if inserting `$key` will
+keep the list sorted.
+
+The value of the element located at `$insert` my be equal to the search key.
+
+**NOTE:** Search routines never return less then 0 or otherwise indicate
+'element not found'. The index is always the point when data can be inserted.
+So an empty list will always return a found index of 0, as this where an
+element would be inserted.
+
 # FUTURE WORK
 
 - Make an XS version
@@ -423,12 +430,7 @@ The option **prefix** has no effect as the routine is anonymous.
 
 [List::BinarySearch](https://metacpan.org/pod/List%3A%3ABinarySearch) and the [List::BinarySearch::PP](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3APP)(pure perl)  and
 [List::BinarySearch::XS](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3AXS) (XS enhanced) 'sub modules' provide more flexibility
-than this module. Mainly because of the use of code blocks are for element
-comparison.
-
-However this module which is also pure perl is about 5-6x as fast as the
-[List::BinarySearch::PP](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3APP) module and is only half the speed of the
-[List::BinarySearch::XS](https://metacpan.org/pod/List%3A%3ABinarySearch%3A%3AXS) module.
+than this module thanks to the use of code blocks for element comparison.
 
 # REPOSITORY and BUG REPORTING
 
