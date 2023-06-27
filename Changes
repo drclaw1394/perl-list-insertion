@@ -1,6 +1,12 @@
 Revision history for Perl extension List::Insertion.
+v0.1.2  2023-06-23
+  [improvements]
+  - removed uneeded localisation of $_
 
 v0.1.1  2023-03-24
+  [features]
+  - make_search now returns code string in list context
+
   [fixes]
   - fix typo in Makefile.PL in repo links
 
