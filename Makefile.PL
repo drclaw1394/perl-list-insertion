@@ -21,7 +21,7 @@ WriteMakefile(
       repository =>{
         type => "git",
         url => "git://github.com/drclaw1394/perl-list-insertion.git",
-        web => "http://github.com/drclaw1394/perl-list-insertion",
+        web => "https://github.com/drclaw1394/perl-list-insertion",
       }
     }
   }
